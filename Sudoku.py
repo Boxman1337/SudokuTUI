@@ -169,7 +169,7 @@ def run(stdscr):
     # Draw a box around the main scree
     stdscr.box(curses.ACS_VLINE, curses.ACS_HLINE)
     
-    sudoku = Sudoku(9, "E")
+    sudoku = Sudoku(9, "H")
     sudoku.fillMatrix()
 
     attempts = 0
@@ -205,6 +205,7 @@ def run(stdscr):
     curses.start_color()
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
 
     while (k != ord('q')):
         stdscr.clear()
@@ -243,17 +244,25 @@ def run(stdscr):
         for i in range(sudoku.size):
             for j in range(sudoku.size):
                 cell = str(sudoku.matrix[i][j])
+                color = curses.color_pair(2)
+                originalCell = sudoku.postRemove[i][j] != 0
                 if cell == "0":
                     cell = " "
                 if cursorX == i and cursorY == j:
-                    stdscr.addstr(posY + j * spacingY, posX + i * spacingX, cell, curses.color_pair(1))
+                    if originalCell:
+                        color = curses.color_pair(3)
+                    color = curses.color_pair(1)
                 else:
-                    stdscr.addstr(posY + j * spacingY, posX + i * spacingX, cell, curses.color_pair(2))
+                    if originalCell:
+                        color = curses.color_pair(3)
+                stdscr.addstr(posY + j * spacingY, posX + i * spacingX, cell, color)
         
         # Draw Matrix Grid, Vertical Bars
         for i in range(-1, sudoku.size, sudoku.sizeRoot):
             for j in range(-1, sudoku.size * spacingY):
-                stdscr.addch(posY + j, posX + i * spacingX + int(spacingX // 2), curses.ACS_VLINE, curses.color_pair(2))
+                pY = posY + j
+                pX = posX + i * spacingX + int(spacingX // 2)
+                stdscr.addch(pY, pX, curses.ACS_VLINE, curses.color_pair(2))
         
         # Draw Matrix Grid, Horizontal Bars and Intersections
         for j in range(-1, sudoku.size, sudoku.sizeRoot):
