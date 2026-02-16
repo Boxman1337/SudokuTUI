@@ -166,63 +166,145 @@ class Sudoku:
 
 def run(stdscr):
     
+    curses.curs_set(0)
+    stdscr.timeout(16)
+
     # Draw a box around the main scree
     stdscr.box(curses.ACS_VLINE, curses.ACS_HLINE)
     
-    sudoku = Sudoku(9, "H")
-    sudoku.fillMatrix()
-
-    attempts = 0
-
-    match (sudoku.difficulty):
-        case "D":
-            if sudoku.size == 4:
-                attempts = 1
-            attempts = 1
-        case "E":
-            if sudoku.size == 4:
-                attempts = 2
-            attempts = 20
-        case "M":
-            if sudoku.size == 4:
-                attempts = 4
-            attempts = 30
-        case "H":
-            if sudoku.size == 4:
-                attempts = 6
-            attempts = 40
-
-    sudoku.remove_cells(attempts=attempts)
-    sudoku.postRemove = copy.deepcopy(sudoku.matrix)
-
-    k = 0
+    key = 0
     cursorX = 0
     cursorY = 0
     
-    stdscr.clear()
-    stdscr.refresh()
+    height, width = stdscr.getmaxyx()
+    
+    offsetCenterX = 3
+    
+    # Grid Constants
+    spacingX = 4
+    spacingY = 2
 
+    difficulties = ["Debug", "Easy", "Medium", "Hard"]
+
+    gridSize = 9
+    difficulty = "Debug"
+    
+    attempts = 0
+    
     curses.start_color()
     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
     curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
 
-    while (k != ord('q')):
+    while (True):
+
         stdscr.clear()
-        height, width = stdscr.getmaxyx()
+        
+        if key == ord('q'):
+            return
+        elif key == curses.KEY_RIGHT:
+            cursorX += 1
+        elif key == curses.KEY_LEFT:
+            cursorX -= 1
+        elif key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
+            if cursorX == 0:
+                gridSize = 9
+            else:
+                gridSize = 4
+            break
+
+        cursorX = max(0, cursorX)
+        cursorX = min(1, cursorX)
+    
+        color = curses.color_pair(2)
+
+        if cursorX == 0:
+            stdscr.addstr(int(height // 2), int(width // 2) - offsetCenterX * 2, "9x9", curses.color_pair(1))
+            stdscr.addstr(int(height // 2), int(width // 2) + offsetCenterX, "4x4", curses.color_pair(2))
+        else:
+            stdscr.addstr(int(height // 2), int(width // 2) - offsetCenterX * 2, "9x9", curses.color_pair(2))
+            stdscr.addstr(int(height // 2), int(width // 2) + offsetCenterX, "4x4", curses.color_pair(1))
+        
+        stdscr.refresh()
+        key = stdscr.getch()
+   
+    key = 0
+    cursorX = 0
+    cursorY = 0
+
+    while (True):
+
+        stdscr.clear()
+
+        if key == ord('q'):
+            return
+        elif key == curses.KEY_DOWN:
+            cursorY += 1
+        elif key == curses.KEY_UP:
+            cursorY -= 1
+        elif key in (curses.KEY_ENTER, ord('\n'), ord('\r')):
+            difficulty = difficulties[cursorY]
+            break
+        
+        cursorY = max(0, cursorY)
+        cursorY = min(3, cursorY)
+
+        for i in range(4):
+            color = curses.color_pair(2)
+            if i == cursorY:
+                color = curses.color_pair(1)
+            stdscr.addstr(int(height // 2) + i, int(width // 2), difficulties[i], color)
+
+        stdscr.refresh()
+        key = stdscr.getch()
+
+    sudoku = Sudoku(gridSize, difficulty)
+    sudoku.fillMatrix()
+    
+    match (sudoku.difficulty):
+        case "Debug":
+            attempts = 1
+        case "Easy":
+            if sudoku.size == 4:
+                attempts = 2
+            else:
+                attempts = 20
+        case "Medium":
+            if sudoku.size == 4:
+                attempts = 4
+            else:
+                attempts = 30
+        case "Hard":
+            if sudoku.size == 4:
+                attempts = 6
+            else:
+                attempts = 40
+
+    sudoku.remove_cells(attempts=attempts)
+    sudoku.postRemove = copy.deepcopy(sudoku.matrix)
+    
+    key = 0
+    cursorX = 0
+    cursorY = 0
+
+    while (True):
+
+        stdscr.clear()
 
         numPressed = -1
 
-        if k == curses.KEY_DOWN:
+        if key == ord('q'):
+            return
+        elif key == curses.KEY_DOWN:
             cursorY += 1
-        elif k == curses.KEY_UP:
+        elif key == curses.KEY_UP:
             cursorY -= 1
-        elif k == curses.KEY_RIGHT:
+        elif key == curses.KEY_RIGHT:
             cursorX += 1
-        elif k == curses.KEY_LEFT:
+        elif key == curses.KEY_LEFT:
             cursorX -= 1
-        elif ord('1') <= k <= ord('9'):
-            numPressed = k - ord('0')
+        elif ord('1') <= key <= ord('9'):
+            numPressed = key - ord('0')
 
         cursorX = max(0, cursorX)
         cursorX = min(sudoku.size - 1, cursorX)
@@ -230,16 +312,13 @@ def run(stdscr):
         cursorY = max(0, cursorY)
         cursorY = min(sudoku.size - 1, cursorY)
         
+        posX = int(width // 2 - spacingX * int(sudoku.size // 2))
+        posY = int(height // 2 - spacingY * int(sudoku.size // 2))    
+        
         if numPressed > -1:
             if sudoku.postRemove[cursorX][cursorY] == 0:
                 sudoku.matrix[cursorX][cursorY] = numPressed
 
-        # Drawing Constants
-        spacingX = 4
-        spacingY = 2
-        posX = int(width // 2 - spacingX * int(sudoku.size // 2))
-        posY = int(height // 2 - spacingY * int(sudoku.size // 2))
-        
         # Draw Matrix, Curses-style
         for i in range(sudoku.size):
             for j in range(sudoku.size):
@@ -280,7 +359,7 @@ def run(stdscr):
             return
 
         stdscr.refresh()
-        k = stdscr.getch()
+        key = stdscr.getch()
 
 def main():
     curses.wrapper(run)
